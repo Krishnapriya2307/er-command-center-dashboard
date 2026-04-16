@@ -35,7 +35,9 @@ A real-time Emergency Room (ER) dashboard designed to simulate hospital operatio
 
 ##  Screenshots
 
-(Add your screenshots here)
+<img width="1899" height="861" alt="Screenshot 2026-04-16 130927" src="https://github.com/user-attachments/assets/564c952a-ba26-4c84-bce1-74723de1a27c" />
+
+<img width="1893" height="614" alt="Screenshot 2026-04-16 130948" src="https://github.com/user-attachments/assets/25e783bf-3ad1-497b-8273-4f2c0daf69fc" />
 
 ---
 
