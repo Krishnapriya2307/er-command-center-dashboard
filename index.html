@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ER Command Center — City General Hospital</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #0f1526;
+    --bg3: #141c2e;
+    --border: rgba(99,179,255,0.12);
+    --border2: rgba(99,179,255,0.22);
+    --accent: #3b9eff;
+    --accent2: #00d4aa;
+    --red: #ff4757;
+    --amber: #ffa502;
+    --green: #2ed573;
+    --text: #e8f0ff;
+    --text2: #8899bb;
+    --text3: #556080;
+    --mono: 'Share Tech Mono', monospace;
+    --body: 'Barlow', sans-serif;
+    --head: 'Barlow Condensed', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body);
+    font-size: 13px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scanline overlay */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none; z-index: 9999;
+  }
+
+  /* HEADER */
+  .header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border2);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo-block {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 12px;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+  }
+  .cross {
+    width: 18px; height: 18px; position: relative; flex-shrink: 0;
+  }
+  .cross::before, .cross::after {
+    content: ''; position: absolute; background: var(--red);
+    border-radius: 2px;
+  }
+  .cross::before { width: 4px; height: 18px; left: 7px; top: 0; }
+  .cross::after  { width: 18px; height: 4px; left: 0; top: 7px; }
+
+  .header-title { font-family: var(--head); font-size: 18px; font-weight: 700; letter-spacing: 0.08em; color: var(--text); text-transform: uppercase; }
+  .header-sub { font-family: var(--mono); font-size: 10px; color: var(--text2); letter-spacing: 0.06em; }
+
+  .live-pill {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    background: rgba(46,213,115,0.1);
+    border: 1px solid rgba(46,213,115,0.3);
+    border-radius: 20px;
+    font-family: var(--mono); font-size: 11px; color: var(--green);
+    letter-spacing: 0.1em;
+  }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: blink 1.4s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .clock { font-family: var(--mono); font-size: 20px; color: var(--accent); letter-spacing: 0.05em; }
+  .date-str { font-family: var(--mono); font-size: 10px; color: var(--text3); text-align: right; margin-top: 2px; }
+
+  /* LAYOUT */
+  .main { padding: 14px 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* METRICS ROW */
+  .metrics-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+
+  .metric {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .3s;
+  }
+  .metric::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--accent); opacity: .5;
+    transition: opacity .3s;
+  }
+  .metric.danger { border-color: rgba(255,71,87,0.4); }
+  .metric.danger::before { background: var(--red); opacity: 1; }
+  .metric.warn { border-color: rgba(255,165,2,0.4); }
+  .metric.warn::before { background: var(--amber); opacity: 1; }
+  .metric.ok { border-color: rgba(46,213,115,0.3); }
+  .metric.ok::before { background: var(--green); opacity: 1; }
+
+  .metric-label { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 8px; }
+  .metric-val { font-family: var(--head); font-size: 38px; font-weight: 700; line-height: 1; color: var(--text); transition: color .3s; }
+  .metric.danger .metric-val { color: var(--red); }
+  .metric.warn .metric-val { color: var(--amber); }
+  .metric.ok .metric-val { color: var(--green); }
+  .metric-sub { font-size: 11px; color: var(--text2); margin-top: 5px; }
+
+  /* MID ROW */
+  .mid-row { display: grid; grid-template-columns: 1.5fr 1fr; gap: 12px; }
+
+  /* PANELS */
+  .panel {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .panel-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg3);
+  }
+  .panel-head-title {
+    font-family: var(--mono); font-size: 11px; color: var(--accent);
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .pill {
+    font-family: var(--mono); font-size: 10px;
+    padding: 2px 8px; border-radius: 10px;
+    letter-spacing: 0.05em;
+  }
+  .pill-red { background: rgba(255,71,87,0.15); color: var(--red); border: 1px solid rgba(255,71,87,0.3); }
+  .pill-amber { background: rgba(255,165,2,0.15); color: var(--amber); border: 1px solid rgba(255,165,2,0.3); }
+  .pill-blue { background: rgba(59,158,255,0.15); color: var(--accent); border: 1px solid rgba(59,158,255,0.3); }
+  .pill-green { background: rgba(46,213,115,0.15); color: var(--green); border: 1px solid rgba(46,213,115,0.3); }
+
+  /* PATIENT FEED */
+  .feed-cols {
+    display: grid; grid-template-columns: 80px 70px 1fr 65px 90px;
+    padding: 7px 14px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono); font-size: 10px; color: var(--text3);
+    letter-spacing: 0.07em; text-transform: uppercase;
+  }
+  .feed-body { overflow-y: auto; max-height: 300px; flex: 1; }
+  .feed-body::-webkit-scrollbar { width: 3px; }
+  .feed-body::-webkit-scrollbar-track { background: var(--bg); }
+  .feed-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .feed-row {
+    display: grid; grid-template-columns: 80px 70px 1fr 65px 90px;
+    padding: 8px 14px; align-items: center;
+    border-bottom: 1px solid var(--border);
+    transition: background .5s;
+    font-size: 12px;
+  }
+  .feed-row:last-child { border-bottom: none; }
+  .feed-row.new { background: rgba(59,158,255,0.07); animation: flash .8s ease; }
+  @keyframes flash { 0%{background:rgba(59,158,255,0.2)} 100%{background:rgba(59,158,255,0.07)} }
+
+  .pid { font-family: var(--mono); font-size: 11px; color: var(--text2); }
+  .tbadge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 3px;
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+  }
+  .t1 { background: rgba(255,71,87,0.25); color: var(--red); border: 1px solid rgba(255,71,87,0.5); }
+  .t2 { background: rgba(255,165,2,0.2); color: var(--amber); border: 1px solid rgba(255,165,2,0.4); }
+  .t3 { background: rgba(255,214,0,0.15); color: #ffd400; border: 1px solid rgba(255,214,0,0.3); }
+  .t4 { background: rgba(46,213,115,0.15); color: var(--green); border: 1px solid rgba(46,213,115,0.3); }
+  .t5 { background: rgba(136,153,187,0.15); color: var(--text2); border: 1px solid rgba(136,153,187,0.2); }
+
+  .dept { font-size: 11px; color: var(--text2); }
+  .wait-val { font-family: var(--mono); font-size: 12px; }
+  .wait-hi { color: var(--red); }
+  .wait-md { color: var(--amber); }
+  .wait-ok { color: var(--green); }
+
+  .status-tag {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 10px; font-family: var(--mono); letter-spacing: 0.04em;
+  }
+  .sdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .sdot-crit { background: var(--red); animation: blink .8s infinite; }
+  .sdot-treat { background: var(--green); }
+  .sdot-wait { background: var(--amber); }
+
+  /* DEPT BARS */
+  .dept-list { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .dept-item {}
+  .dept-item-head { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .dept-name { font-size: 12px; color: var(--text); }
+  .dept-nums { font-family: var(--mono); font-size: 11px; color: var(--text2); }
+  .bar-track { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; border: 1px solid var(--border); }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width .9s cubic-bezier(.4,0,.2,1); }
+  .bar-ok   { background: linear-gradient(90deg, #1a6b3e, var(--green)); }
+  .bar-warn { background: linear-gradient(90deg, #7a4400, var(--amber)); }
+  .bar-full { background: linear-gradient(90deg, #8b1a1a, var(--red)); }
+
+  /* BOTTOM ROW */
+  .bottom-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* ALERTS */
+  .alert-list { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
+  .alert-list::-webkit-scrollbar { width: 3px; }
+  .alert-list::-webkit-scrollbar-thumb { background: var(--border2); }
+
+  .alert-item {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 9px 12px;
+    border-radius: 4px;
+    border-left: 3px solid;
+    font-size: 12px; line-height: 1.5;
+    animation: slideIn .4s ease;
+  }
+  @keyframes slideIn { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:none} }
+  .alert-red   { background: rgba(255,71,87,0.08);  border-color: var(--red);   color: #ffaaaa; }
+  .alert-amber { background: rgba(255,165,2,0.08);  border-color: var(--amber); color: #ffcc88; }
+  .alert-blue  { background: rgba(59,158,255,0.08); border-color: var(--accent);color: #99ccff; }
+  .alert-green { background: rgba(46,213,115,0.08); border-color: var(--green); color: #88ffbb; }
+  .alert-icon { font-size: 13px; flex-shrink: 0; margin-top: 1px; font-family: var(--mono); font-weight: 700; }
+  .alert-title { font-weight: 600; font-size: 12px; }
+
+  /* WEATHER */
+  .weather-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 14px; }
+  .weather-card {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 5px; padding: 12px 14px;
+  }
+  .w-city { font-family: var(--head); font-size: 14px; font-weight: 600; color: var(--text); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; }
+  .w-temp { font-family: var(--head); font-size: 32px; font-weight: 700; line-height: 1; color: var(--text); }
+  .w-desc { font-size: 11px; color: var(--text2); margin-top: 3px; }
+  .w-meta { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 4px; }
+  .w-impact {
+    margin-top: 8px; padding: 4px 8px; border-radius: 3px;
+    font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+  .wi-high   { background: rgba(255,71,87,0.15);  color: var(--red);   border: 1px solid rgba(255,71,87,0.3); }
+  .wi-mod    { background: rgba(255,165,2,0.15);  color: var(--amber); border: 1px solid rgba(255,165,2,0.3); }
+  .wi-low    { background: rgba(46,213,115,0.12); color: var(--green); border: 1px solid rgba(46,213,115,0.25); }
+  .wi-load   { background: rgba(59,158,255,0.1);  color: var(--accent); border: 1px solid rgba(59,158,255,0.2); }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-family: var(--mono); font-size: 10px; color: var(--text3);
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 0 2px 4px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+  }
+
+  .triage-legend {
+    display: flex; gap: 10px; padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .tleg { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text2); font-family: var(--mono); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo-block">
+      <div class="cross"></div>
+      <div>
+        <div class="header-title">ER Command Center</div>
+        <div class="header-sub">City General Hospital — Emergency Operations</div>
+      </div>
+    </div>
+    <div class="live-pill">
+      <div class="live-dot"></div>
+      LIVE
+    </div>
+  </div>
+  <div class="header-right">
+    <div>
+      <div class="clock" id="clock">00:00:00</div>
+      <div class="date-str" id="datestr">—</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- METRICS -->
+  <div class="metrics-row">
+    <div class="metric" id="mc-occ">
+      <div class="metric-label">ER Occupancy</div>
+      <div class="metric-val" id="mv-occ">—</div>
+      <div class="metric-sub" id="ms-occ">of 80 beds</div>
+    </div>
+    <div class="metric" id="mc-wait">
+      <div class="metric-label">Avg Wait Time</div>
+      <div class="metric-val" id="mv-wait">—</div>
+      <div class="metric-sub">minutes</div>
+    </div>
+    <div class="metric" id="mc-crit">
+      <div class="metric-label">Critical (T1–T2)</div>
+      <div class="metric-val" id="mv-crit">—</div>
+      <div class="metric-sub" id="ms-crit">patients</div>
+    </div>
+    <div class="metric" id="mc-arr">
+      <div class="metric-label">Arrivals Today</div>
+      <div class="metric-val" id="mv-arr">—</div>
+      <div class="metric-sub" id="ms-arr">+0 last hour</div>
+    </div>
+  </div>
+
+  <!-- MID ROW -->
+  <div class="mid-row">
+
+    <!-- PATIENT FEED -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-head-title">Live Patient Feed</span>
+        <span class="pill pill-blue" id="feed-pill">0 active</span>
+      </div>
+      <div class="triage-legend">
+        <div class="tleg"><span class="tbadge t1" style="width:16px;height:16px;font-size:9px">T1</span> Immediate</div>
+        <div class="tleg"><span class="tbadge t2" style="width:16px;height:16px;font-size:9px">T2</span> Urgent</div>
+        <div class="tleg"><span class="tbadge t3" style="width:16px;height:16px;font-size:9px">T3</span> Semi-urgent</div>
+        <div class="tleg"><span class="tbadge t4" style="width:16px;height:16px;font-size:9px">T4</span> Non-urgent</div>
+        <div class="tleg"><span class="tbadge t5" style="width:16px;height:16px;font-size:9px">T5</span> Minor</div>
+      </div>
+      <div class="feed-cols">
+        <span>Patient ID</span><span>Triage</span><span>Department</span><span>Wait</span><span>Status</span>
+      </div>
+      <div class="feed-body" id="feed-body"></div>
+    </div>
+
+    <!-- DEPT BARS -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-head-title">Department Load</span>
+        <span class="pill pill-amber" id="dept-pill">—</span>
+      </div>
+      <div class="dept-list" id="dept-list"></div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM ROW -->
+  <div class="bottom-row">
+
+    <!-- ALERTS -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-head-title">Active Alerts</span>
+        <span class="pill pill-red" id="alert-count">0</span>
+      </div>
+      <div class="alert-list" id="alert-list"></div>
+    </div>
+
+    <!-- WEATHER -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-head-title">Weather Impact — Regional</span>
+        <span class="pill pill-blue" id="w-refresh">Fetching...</span>
+      </div>
+      <div class="weather-grid" id="weather-grid">
+        <div class="weather-card"><div class="w-city">Coimbatore</div><div class="w-desc">Loading live data...</div></div>
+        <div class="weather-card"><div class="w-city">Chennai</div><div class="w-desc">Loading live data...</div></div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  // ── CONFIG ──────────────────────────────────────────────
+  const BEDS = 80;
+  const DEPTS = ['Trauma','Cardiology','Ortho','Paeds','Neurology','General'];
+  const DEPT_CAP = [12, 10, 10, 8, 8, 32];
+  const CITIES = [
+    { name: 'Coimbatore', lat: 11.0168, lon: 76.9558 },
+    { name: 'Chennai',    lat: 13.0827, lon: 80.2707 },
+  ];
+ const TICK_MS = 60000;
+  const WEATHER_INTERVAL_MS = 5 * 60 * 1000;
+
+  // ── STATE ───────────────────────────────────────────────
+  let patients = [];
+  let ptid = 1000;
+  let arrToday = 0;
+  let arrLastHr = 0;
+  let hrBucket = 0;
+  let weatherData = [];
+
+  // ── HELPERS ─────────────────────────────────────────────
+  const ri = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+  const ro = a => a[Math.floor(Math.random()*a.length)];
+
+  function weightedTriage() {
+    const r = Math.random();
+    if(r < .08) return 1;
+    if(r < .22) return 2;
+    if(r < .52) return 3;
+    if(r < .80) return 4;
+    return 5;
+  }
+
+  function genPatient() {
+    const t = weightedTriage();
+    const dept = DEPTS[Math.floor(Math.random()*DEPTS.length)];
+    const wait = t===1?ri(0,5): t===2?ri(4,18): t===3?ri(15,45): ri(25,90);
+    const status = t<=2 ? 'Critical' : t===3 ? 'Treatment' : 'Waiting';
+    return { id:'P-'+(++ptid), triage:t, dept, wait, status, ts:Date.now() };
+  }
+
+  function init() {
+    for(let i=0;i<ri(20,28);i++) patients.push(genPatient());
+    arrToday = patients.length;
+  }
+
+  function addPatient() {
+    if(patients.length < 75) {
+      patients.unshift(genPatient());
+      arrToday++; arrLastHr++; hrBucket++;
+    }
+  }
+
+  function discharge() {
+    if(patients.length > 22 && Math.random() < .35) {
+      const idx = patients.findIndex(p => p.triage >= 4 && p.wait > 35);
+      if(idx > -1) patients.splice(idx, 1);
+    }
+  }
+
+  // ── CLOCK ───────────────────────────────────────────────
+  function updateClock() {
+    const n = new Date();
+    document.getElementById('clock').textContent =
+      n.toLocaleTimeString('en-IN', {hour12:false});
+    document.getElementById('datestr').textContent =
+      n.toLocaleDateString('en-IN', {weekday:'short', day:'2-digit', month:'short', year:'numeric'});
+  }
+
+  // ── METRICS ─────────────────────────────────────────────
+  function renderMetrics() {
+    const occ = patients.length;
+    const pct = Math.round(occ/BEDS*100);
+    const avgWait = occ ? Math.round(patients.reduce((s,p)=>s+p.wait,0)/occ) : 0;
+    const crit = patients.filter(p=>p.triage<=2).length;
+
+    document.getElementById('mv-occ').textContent  = occ;
+    document.getElementById('ms-occ').textContent  = `of ${BEDS} beds (${pct}%)`;
+    document.getElementById('mv-wait').textContent = avgWait;
+    document.getElementById('mv-crit').textContent = crit;
+    document.getElementById('mv-arr').textContent  = arrToday;
+    document.getElementById('ms-arr').textContent  = `+${arrLastHr} last hour`;
+
+    const setClass = (id, cls) => { document.getElementById(id).className = 'metric '+cls; };
+    setClass('mc-occ',  pct>=85?'danger': pct>=65?'warn':'ok');
+    setClass('mc-wait', avgWait>=45?'danger': avgWait>=25?'warn':'ok');
+    setClass('mc-crit', crit>=6?'danger': crit>=3?'warn':'ok');
+    setClass('mc-arr',  'ok');
+  }
+
+  // ── FEED ────────────────────────────────────────────────
+  function renderFeed() {
+    document.getElementById('feed-pill').textContent = patients.length+' active';
+    const rows = patients.slice(0,22).map((p,i) => {
+      const wCls = p.wait>45?'wait-val wait-hi': p.wait>25?'wait-val wait-md':'wait-val wait-ok';
+      const sdot = p.status==='Critical'?'sdot-crit': p.status==='Treatment'?'sdot-treat':'sdot-wait';
+      return `<div class="feed-row${i===0?' new':''}">
+        <span class="pid">${p.id}</span>
+        <span><span class="tbadge t${p.triage}">T${p.triage}</span></span>
+        <span class="dept">${p.dept}</span>
+        <span class="${wCls}">${p.wait}m</span>
+        <span class="status-tag"><span class="sdot ${sdot}"></span>${p.status}</span>
+      </div>`;
+    }).join('');
+    document.getElementById('feed-body').innerHTML = rows;
+  }
+
+  // ── DEPARTMENTS ─────────────────────────────────────────
+  function renderDepts() {
+    const counts = {};
+    DEPTS.forEach(d => counts[d]=0);
+    patients.forEach(p => { if(counts[p.dept]!==undefined) counts[p.dept]++; });
+    const overloaded = DEPTS.filter((d,i) => counts[d]/DEPT_CAP[i] >= .85).length;
+    document.getElementById('dept-pill').textContent = overloaded > 0 ? overloaded+' critical' : 'Normal load';
+    document.getElementById('dept-pill').className = 'pill '+(overloaded>0?'pill-red':'pill-green');
+
+    document.getElementById('dept-list').innerHTML = DEPTS.map((d,i)=>{
+      const pct = Math.min(100, Math.round(counts[d]/DEPT_CAP[i]*100));
+      const cls = pct>=85?'bar-full': pct>=65?'bar-warn':'bar-ok';
+      return `<div class="dept-item">
+        <div class="dept-item-head">
+          <span class="dept-name">${d}</span>
+          <span class="dept-nums">${counts[d]}/${DEPT_CAP[i]} · ${pct}%</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── ALERTS ──────────────────────────────────────────────
+  function renderAlerts() {
+    const occ = patients.length;
+    const pct = Math.round(occ/BEDS*100);
+    const avgWait = occ ? Math.round(patients.reduce((s,p)=>s+p.wait,0)/occ) : 0;
+    const crit = patients.filter(p=>p.triage<=2).length;
+    const alerts = [];
+
+    if(crit >= 6)
+      alerts.push({cls:'alert-red',   icon:'!!', title:'Critical surge', body:`${crit} patients at T1–T2. Activate full trauma team. All hands on deck.`});
+    else if(crit >= 3)
+      alerts.push({cls:'alert-amber', icon:'!',  title:'Critical count elevated', body:`${crit} T1–T2 patients active. Pre-position resuscitation cart, alert senior registrar.`});
+
+    if(pct >= 90)
+      alerts.push({cls:'alert-red',   icon:'!!', title:'ER near capacity', body:`${pct}% occupancy (${occ}/${BEDS}). Initiate ambulance diversion, fast-track T4-T5 discharge.`});
+    else if(pct >= 75)
+      alerts.push({cls:'alert-amber', icon:'!',  title:'High occupancy', body:`${pct}% capacity. Begin discharge planning for stable patients.`});
+
+    if(avgWait >= 50)
+      alerts.push({cls:'alert-red',   icon:'!!', title:'Wait time breach', body:`Avg wait ${avgWait} min — 4-hour target at risk. Escalate to on-call consultant immediately.`});
+    else if(avgWait >= 30)
+      alerts.push({cls:'alert-amber', icon:'!',  title:'Wait times elevated', body:`Avg wait ${avgWait} min. Open overflow bay, reassign triage nurses.`});
+
+    weatherData.forEach(w => {
+      if(w.temp >= 38)
+        alerts.push({cls:'alert-red',  icon:'~', title:`Heat surge — ${w.city}`, body:`${w.temp}°C in ${w.city}. Expect heat exhaustion, dehydration & cardiac admissions in next 2–3 hrs.`});
+      else if(w.temp >= 35)
+        alerts.push({cls:'alert-amber',icon:'~', title:`Heat advisory — ${w.city}`, body:`${w.temp}°C in ${w.city}. Pre-stock IV fluids, cooling packs. Monitor elderly arrivals.`});
+      if(w.rain)
+        alerts.push({cls:'alert-blue', icon:'~', title:`Storm/rain — ${w.city}`, body:`Active precipitation in ${w.city}. Anticipate road trauma cases. Prep surgical consult on standby.`});
+    });
+
+    if(alerts.length === 0)
+      alerts.push({cls:'alert-green', icon:'✓', title:'All systems nominal', body:'No active alerts. ER operating within normal parameters.'});
+
+    document.getElementById('alert-count').textContent = alerts.filter(a=>a.cls==='alert-red').length;
+    document.getElementById('alert-list').innerHTML = alerts.map(a=>
+      `<div class="alert-item ${a.cls}">
+        <div class="alert-icon">${a.icon}</div>
+        <div><span class="alert-title">${a.title} — </span>${a.body}</div>
+      </div>`
+    ).join('');
+  }
+
+  // ── WEATHER ─────────────────────────────────────────────
+  async function fetchWeather() {
+    document.getElementById('w-refresh').textContent = 'Updating...';
+    const results = [];
+    for(const city of CITIES) {
+      try {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`;
+        const res = await fetch(url);
+        const d   = await res.json();
+        const cur = d.current;
+        const wc  = cur.weather_code || 0;
+        const rain = (wc>=51&&wc<=67)||(wc>=80&&wc<=82)||(wc>=95&&wc<=99);
+        const desc = rain ? 'Rain / Storms' : wc<=1 ? 'Clear Sky' : wc<=3 ? 'Partly Cloudy' : 'Overcast';
+        results.push({ city:city.name, temp:Math.round(cur.temperature_2m), humidity:Math.round(cur.relative_humidity_2m), wind:Math.round(cur.wind_speed_10m), desc, rain });
+      } catch(e) {
+        results.push({ city:city.name, temp:33, humidity:65, wind:10, desc:'Unavailable', rain:false });
+      }
+    }
+    weatherData = results;
+    renderWeather();
+    renderAlerts();
+    const t = new Date();
+    document.getElementById('w-refresh').textContent = 'Updated '+t.toLocaleTimeString('en-IN',{hour12:false});
+  }
+
+  function renderWeather() {
+    if(!weatherData.length) return;
+    document.getElementById('weather-grid').innerHTML = weatherData.map(w => {
+      const impCls = (w.temp>=38||w.rain) ? 'wi-high' : w.temp>=35 ? 'wi-mod' : 'wi-low';
+      const impTxt = w.temp>=38 ? 'HIGH IMPACT — heat surge expected' : w.rain ? 'HIGH IMPACT — trauma risk elevated' : w.temp>=35 ? 'MODERATE — heat advisory active' : 'LOW — normal operations';
+      return `<div class="weather-card">
+        <div class="w-city">${w.city}</div>
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <div class="w-temp">${w.temp}°C</div>
+          <div class="w-desc">${w.desc}</div>
+        </div>
+        <div class="w-meta">Humidity ${w.humidity}% &nbsp;·&nbsp; Wind ${w.wind} km/h</div>
+        <div class="w-impact ${impCls}">${impTxt}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── MAIN TICK ───────────────────────────────────────────
+  function tick() {
+    updateClock();
+   let weatherFactor = 0;
+
+weatherData.forEach(w => {
+  if (w.temp >= 38 || w.rain) {
+    weatherFactor = 0.3;
+  }
+});
+
+if (Math.random() < (0.55 + weatherFactor)) {
+  addPatient();
+}
+    discharge();
+    patients.forEach(p => { if(p.status !== 'Critical') p.wait++; else p.wait += 0.5; });
+    renderMetrics();
+    renderFeed();
+    renderDepts();
+    renderAlerts();
+  }
+
+  // ── BOOT ────────────────────────────────────────────────
+  init();
+  tick();
+  fetchWeather();
+
+  setInterval(tick, TICK_MS);
+  setInterval(fetchWeather, WEATHER_INTERVAL_MS);
+  setInterval(() => { arrLastHr = hrBucket; hrBucket = 0; }, 3600000);
+</script>
+</body>
+</html>
